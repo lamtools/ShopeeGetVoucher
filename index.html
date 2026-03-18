@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tạo Link Lấy Voucher</title>
+    <title>Shopee Voucher Tool</title>
     <style>
         :root {
             --primary: #ee4d2d;
@@ -55,6 +55,30 @@
         .btn-paste:hover { background-color: var(--primary); color: white; }
         .btn-paste:active { transform: scale(0.95); }
 
+        .btn-clear {
+            position: absolute;
+            bottom: 10px;
+            right: 90px;
+            width: auto;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            background-color: var(--surface);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            margin: 0;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.1s ease;
+        }
+        .btn-clear svg { width: 16px; height: 16px; stroke-width: 2.5; }
+        .btn-clear:hover { background-color: #dc3545; color: white; }
+        .btn-clear:active { transform: scale(0.95); }
+
         button { 
             width: 100%; color: white; border: none; padding: 1rem; border-radius: 12px; 
             font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; 
@@ -96,6 +120,16 @@
 
     <div class="input-group">
         <textarea id="rawLink" placeholder="Dán link Shopee vào đây (Link ngắn hoặc dài đều cân tất)..."></textarea>
+        <button class="btn-clear" onclick="clearInput()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 4 21 4 23 6"></polyline>
+                <line x1="19" y1="6" x2="5" y2="6"></line>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"></path>
+            </svg>
+            Xóa
+        </button>
         <button class="btn-paste" onclick="pasteFromClipboard()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -133,7 +167,7 @@
         WORKER_API: "https://shopee-link.lamtypre.workers.dev/",
         AFF_ID: "17325690040",          // ĐIỀN AFFILIATE ID CỦA BẠN
         SUB_ID: "fb-voucher",           // ĐIỀN SUB_ID NẾU CẦN (Hoặc để trống "")
-        FB_POST_URL: "https://www.facebook.com/share/p/1EAjKXe3mr/" // ĐIỀN LINK BÀI VIẾT FACEBOOK CẦN COMMENT
+        FB_POST_URL: "https://www.facebook.com/share/p/18Zxp3fkos/" // ĐIỀN LINK BÀI VIẾT FACEBOOK CẦN COMMENT
     };
     // ==========================================
 
@@ -147,6 +181,12 @@
             console.error('Lỗi đọc clipboard: ', err);
             alert("Trình duyệt chặn dán tự động. Bạn chạm giữ vào ô và chọn 'Dán' nhé!");
         }
+    }
+
+    function clearInput() {
+        document.getElementById('rawLink').value = '';
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('rawLink').focus();
     }
 
     function cleanLongUrl(longUrl) {
