@@ -103,11 +103,16 @@
         .result-box { display: none; animation: fadeIn 0.3s ease-in-out; border-top: 1px solid var(--border); padding-top: 1.5rem; }
         .result-url { 
             background-color: #fff5f3; border: 1px solid var(--primary); padding: 1rem; 
-            border-radius: 12px; word-break: break-all; font-size: 1rem; margin-bottom: 1.5rem; 
-            color: var(--primary); font-weight: 500; text-align: center;
+            border-radius: 12px; word-break: break-all; font-size: 0.95rem; margin-bottom: 1.5rem; 
+            color: var(--primary); font-weight: 500; text-align: left;
             cursor: pointer;
             transition: all 0.2s ease;
             user-select: text;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }
         .result-url:hover {
             background-color: #ffe8e0;
@@ -232,7 +237,7 @@
         WORKER_API: "https://shopee-link.lamtypre.workers.dev/",
         AFF_ID: "17325690040",          // ĐIỀN AFFILIATE ID CỦA BẠN
         SUB_ID: "fb-voucher",           // ĐIỀN SUB_ID NẾU CẦN (Hoặc để trống "")
-        FB_POST_URL: "https://www.facebook.com/share/p/18bDBUSLCc/" // ĐIỀN LINK BÀI VIẾT FACEBOOK CẦN COMMENT
+        FB_POST_URL: "https://www.facebook.com/groups/acesansale/permalink/26175166068759724" // ĐIỀN LINK BÀI VIẾT FACEBOOK CẦN COMMENT
     };
     // ==========================================
 
@@ -263,6 +268,45 @@
         }
     }
 
+    // Hàm trích xuất tất cả URLs từ text
+    function extractUrls(text) {
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        return text.match(urlRegex) || [];
+    }
+
+    // Hàm tạo link tracking cho một URL
+    async function createAffiliateLink(shopeeUrl) {
+        try {
+            let finalCleanUrl = "";
+
+            if (shopeeUrl.includes('s.shopee.vn') || shopeeUrl.includes('shope.ee')) {
+                const response = await fetch(`${CONFIG.WORKER_API}?url=${encodeURIComponent(shopeeUrl)}`);
+                if (!response.ok) throw new Error(`API Lỗi HTTP ${response.status}`);
+                
+                const data = await response.json();
+                if (data && data.final_url) {
+                    finalCleanUrl = cleanLongUrl(data.final_url);
+                } else {
+                    throw new Error("Không lấy được link gốc từ API.");
+                }
+            } else {
+                finalCleanUrl = cleanLongUrl(shopeeUrl);
+            }
+
+            const encodedOriginLink = encodeURIComponent(finalCleanUrl);
+            let affiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedOriginLink}&affiliate_id=${CONFIG.AFF_ID}`;
+            
+            if (CONFIG.SUB_ID) {
+                affiliateLink += `&sub_id=${CONFIG.SUB_ID}`;
+            }
+
+            return affiliateLink;
+        } catch (error) {
+            console.error('Lỗi xử lý link:', error);
+            return null;
+        }
+    }
+
     async function processUrl() {
         const rawInput = document.getElementById('rawLink').value.trim();
 
@@ -285,45 +329,49 @@
         copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 1. Sao Chép Link';
 
         try {
-            let finalCleanUrl = "";
-
-            if (rawInput.includes('s.shopee.vn') || rawInput.includes('shope.ee')) {
-                const response = await fetch(`${CONFIG.WORKER_API}?url=${encodeURIComponent(rawInput)}`);
-                if (!response.ok) throw new Error(`API Lỗi HTTP ${response.status}`);
-                
-                const data = await response.json();
-                if (data && data.final_url) {
-                    finalCleanUrl = cleanLongUrl(data.final_url);
-                } else {
-                    throw new Error("Không lấy được link gốc từ API.");
-                }
-            } else {
-                finalCleanUrl = cleanLongUrl(rawInput);
+            // Trích xuất tất cả URLs từ input
+            const urls = extractUrls(rawInput);
+            
+            if (urls.length === 0) {
+                alert("Không tìm thấy URL Shopee nào trong input!");
+                btn.disabled = false;
+                loading.style.display = 'none';
+                return;
             }
 
-            if (finalCleanUrl) {
-                const encodedOriginLink = encodeURIComponent(finalCleanUrl);
-                let finalAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedOriginLink}&affiliate_id=${CONFIG.AFF_ID}`;
-                
-                if (CONFIG.SUB_ID) {
-                    finalAffiliateLink += `&sub_id=${CONFIG.SUB_ID}`;
+            // Tạo map: URL gốc -> Link tracking
+            const urlMap = new Map();
+            
+            // Xử lý từng URL tuần tự
+            for (const url of urls) {
+                const affiliateLink = await createAffiliateLink(url);
+                if (affiliateLink) {
+                    urlMap.set(url, affiliateLink);
                 }
-
-                document.getElementById('affiliateUrl').innerText = finalAffiliateLink;
-                resultBox.style.display = 'block';
-                
-                // Tự động sao chép kết quả vào clipboard
-                navigator.clipboard.writeText(finalAffiliateLink).then(() => {
-                    showToast('Đã sao chép link!', 'success');
-                }).catch(err => {
-                    console.error('Lỗi sao chép tự động:', err);
-                    showToast('Không thể sao chép tự động', 'error');
-                });
+                // Delay nhẹ để tránh spam API
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+
+            // Thay thế tất cả URLs trong text gốc
+            let resultText = rawInput;
+            urlMap.forEach((newUrl, oldUrl) => {
+                resultText = resultText.replace(new RegExp(oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newUrl);
+            });
+
+            document.getElementById('affiliateUrl').innerText = resultText;
+            resultBox.style.display = 'block';
+            
+            // Tự động sao chép kết quả vào clipboard
+            navigator.clipboard.writeText(resultText).then(() => {
+                showToast('Đã sao chép kết quả!', 'success');
+            }).catch(err => {
+                console.error('Lỗi sao chép tự động:', err);
+                showToast('Không thể sao chép tự động', 'error');
+            });
 
         } catch (error) {
             console.error(error);
-            alert("Lỗi rồi: " + error.message);
+            showToast("Lỗi rồi: " + error.message, 'error');
         } finally {
             btn.disabled = false;
             loading.style.display = 'none';
