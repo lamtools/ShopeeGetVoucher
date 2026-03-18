@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tạo Link Kiếm Tiền Siêu Tốc</title>
+    <style>
+        :root {
+            --primary: #ee4d2d;
+            --bg-color: #f5f5f7;
+            --surface: #ffffff;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --border: #d2d2d7;
+            --success: #34c759;
+            --facebook: #1877F2;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; padding: 1rem; min-height: 100vh; }
+        .container { background-color: var(--surface); width: 100%; max-width: 500px; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-top: 2rem; height: fit-content; }
+        h2 { text-align: center; margin-bottom: 1.5rem; color: var(--primary); font-size: 1.4rem; font-weight: 700; }
+        
+        .input-group { margin-bottom: 1rem; }
+        textarea { 
+            width: 100%; height: 120px; padding: 0.75rem; border: 1px solid var(--border); 
+            border-radius: 12px; font-size: 1.05rem; outline: none; transition: all 0.2s ease; 
+            background-color: #fafafa; resize: none;
+        }
+        textarea:focus { border-color: var(--primary); background-color: #fff; box-shadow: 0 0 0 3px rgba(238, 77, 45, 0.1); }
+
+        button { 
+            width: 100%; color: white; border: none; padding: 1rem; border-radius: 12px; 
+            font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; 
+            margin-top: 0.5rem; display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: var(--border) !important; color: #999 !important; cursor: not-allowed; transform: none; }
+        
+        .btn-process { background-color: var(--primary); margin-bottom: 1.5rem; }
+        .btn-process:hover { background-color: #d73d1f; }
+        
+        .btn-copy { background-color: var(--success); }
+        .btn-copy:hover { background-color: #2fb350; }
+
+        .btn-fb { background-color: var(--facebook); margin-top: 10px; box-shadow: 0 4px 10px rgba(24, 119, 242, 0.3); }
+        .btn-fb:hover { background-color: #166FE5; }
+
+        .loading { text-align: center; display: none; font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem; font-weight: 500; }
+        
+        .result-box { display: none; animation: fadeIn 0.3s ease-in-out; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+        .result-url { 
+            background-color: #fff5f3; border: 1px solid var(--primary); padding: 1rem; 
+            border-radius: 12px; word-break: break-all; font-size: 1rem; margin-bottom: 1.5rem; 
+            color: var(--primary); font-weight: 500; text-align: center;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚡ Tạo Link Lấy Mã Facebook</h2>
+
+    <div class="input-group">
+        <textarea id="rawLink" placeholder="Dán link Shopee vào đây (Link ngắn hoặc dài đều cân tất)..."></textarea>
+    </div>
+
+    <button id="processBtn" class="btn-process" onclick="processUrl()">✨ Tạo Link</button>
+    
+    <div id="loading" class="loading">⏳ Đang giải mã và độ lại link...</div>
+
+    <div id="resultBox" class="result-box">
+        <div id="affiliateUrl" class="result-url"></div>
+        <button id="copyBtn" class="btn-copy" onclick="copyToClipboard()">📋 1. Sao Chép Link</button>
+        <button id="fbBtn" class="btn-fb" onclick="goToFacebook()">💬 2. Bình Luận Lên Facebook</button>
+    </div>
+</div>
+<script>
+    // ==========================================
+    // KHU VỰC CẤU HÌNH (SỬA THÔNG TIN CỦA BẠN Ở ĐÂY)
+    // ==========================================
+    const CONFIG = {
+        WORKER_API: "https://shopee-link.lamtypre.workers.dev/",
+        AFF_ID: "17325690040",          // ĐIỀN AFFILIATE ID CỦA BẠN
+        SUB_ID: "fb-voucher",           // ĐIỀN SUB_ID NẾU CẦN (Hoặc để trống "")
+        FB_POST_URL: "https://www.facebook.com/share/p/1HXJWY3KpT/" // ĐIỀN LINK BÀI VIẾT FACEBOOK CẦN COMMENT
+    };
+    // ==========================================
+
+    function cleanLongUrl(longUrl) {
+        try {
+            const urlObj = new URL(longUrl);
+            return urlObj.origin + urlObj.pathname;
+        } catch (error) {
+            throw new Error("Định dạng URL không hợp lệ.");
+        }
+    }
+
+    async function processUrl() {
+        const rawInput = document.getElementById('rawLink').value.trim();
+
+        if (!rawInput) {
+            alert("Vui lòng dán link Shopee vào ô trống!");
+            document.getElementById('rawLink').focus();
+            return;
+        }
+
+        const btn = document.getElementById('processBtn');
+        const loading = document.getElementById('loading');
+        const resultBox = document.getElementById('resultBox');
+        const copyBtn = document.getElementById('copyBtn');
+        
+        btn.disabled = true;
+        resultBox.style.display = 'none';
+        loading.style.display = 'block';
+        copyBtn.innerText = "📋 1. Sao Chép Link";
+
+        try {
+            let finalCleanUrl = "";
+
+            if (rawInput.includes('s.shopee.vn') || rawInput.includes('shope.ee')) {
+                const response = await fetch(`${CONFIG.WORKER_API}?url=${encodeURIComponent(rawInput)}`);
+                if (!response.ok) throw new Error(`API Lỗi HTTP ${response.status}`);
+                
+                const data = await response.json();
+                if (data && data.final_url) {
+                    finalCleanUrl = cleanLongUrl(data.final_url);
+                } else {
+                    throw new Error("Không lấy được link gốc từ API.");
+                }
+            } else {
+                finalCleanUrl = cleanLongUrl(rawInput);
+            }
+
+            if (finalCleanUrl) {
+                const encodedOriginLink = encodeURIComponent(finalCleanUrl);
+                let finalAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedOriginLink}&affiliate_id=${CONFIG.AFF_ID}`;
+                
+                if (CONFIG.SUB_ID) {
+                    finalAffiliateLink += `&sub_id=${CONFIG.SUB_ID}`;
+                }
+
+                document.getElementById('affiliateUrl').innerText = finalAffiliateLink;
+                resultBox.style.display = 'block';
+                
+                // Tự động copy luôn ngay khi tạo xong cho tiện (tùy chọn)
+                // copyToClipboard();
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Lỗi rồi: " + error.message);
+        } finally {
+            btn.disabled = false;
+            loading.style.display = 'none';
+        }
+    }
+
+    function copyToClipboard() {
+        const textToCopy = document.getElementById('affiliateUrl').innerText;
+        const copyBtn = document.getElementById('copyBtn');
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            copyBtn.innerText = "✅ Đã Copy!";
+        }).catch(err => {
+            alert("Trình duyệt chặn copy tự động, bạn copy tay nhé!");
+        });
+    }
+
+    function goToFacebook() {
+        // Mở link Facebook sang một tab/cửa sổ mới
+        window.open(CONFIG.FB_POST_URL, '_blank');
+    }
+</script>
+
+</body>
+</html>
