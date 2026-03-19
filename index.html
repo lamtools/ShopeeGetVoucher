@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shopee Voucher Tool</title>
+    
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ee4d2d' width='192' height='192' rx='45'/><path fill='white' d='M60 70h72c6.63 0 12 5.37 12 12v48c0 6.63-5.37 12-12 12H60c-6.63 0-12-5.37-12-12V82c0-6.63 5.37-12 12-12z'/><circle cx='76' cy='96' r='6' fill='%23ee4d2d'/><circle cx='96' cy='96' r='6' fill='%23ee4d2d'/><circle cx='116' cy='96' r='6' fill='%23ee4d2d'/><path fill='%23ee4d2d' d='M70 115h52v3H70z'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23ee4d2d' width='180' height='180' rx='40'/><path fill='white' d='M50 60h80c6.63 0 12 5.37 12 12v50c0 6.63-5.37 12-12 12H50c-6.63 0-12-5.37-12-12V72c0-6.63 5.37-12 12-12z'/><circle cx='67' cy='85' r='6' fill='%23ee4d2d'/><circle cx='90' cy='85' r='6' fill='%23ee4d2d'/><circle cx='113' cy='85' r='6' fill='%23ee4d2d'/><path fill='%23ee4d2d' d='M60 105h60v3H60z'/></svg>">
+    
+    <!-- Web App Meta Tags -->
+    <meta name="theme-color" content="#ee4d2d">
+    <meta name="description" content="Công cụ tạo link Shopee với mã giảm giá. Lấy voucher 25% dễ dàng từ các sản phẩm Shopee.">
+    <meta name="application-name" content="GET VOUCHER">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GET VOUCHER">
+    
     <style>
         :root {
             --primary: #ee4d2d;
@@ -451,14 +464,18 @@
                 resultText = resultText.replace(new RegExp(oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newUrl);
             });
 
-            // Render result với clickable links
+            // Tạo 2 text khác nhau: một cho hiển thị, một cho copy
+            const displayText = "Dán Link này vào Facebook để lấy Voucher 25%: " + resultText;
+            const copyText = "Bấm vào link này lấy Voucher 25%: " + resultText;
+
+            // Render result với clickable links (hiển thị displayText)
             const resultElement = document.getElementById('affiliateUrl');
-            resultElement.innerHTML = renderResultWithLinks(resultText);
-            resultElement.dataset.plainText = resultText; // Lưu text gốc để copy
+            resultElement.innerHTML = renderResultWithLinks(displayText);
+            resultElement.dataset.plainText = copyText; // Lưu copyText để copy
             resultBox.style.display = 'block';
             
-            // Tự động sao chép kết quả vào clipboard
-            navigator.clipboard.writeText(resultText).then(() => {
+            // Tự động sao chép kết quả vào clipboard (copy copyText)
+            navigator.clipboard.writeText(copyText).then(() => {
                 showToast('Đã sao chép kết quả!', 'success');
             }).catch(err => {
                 console.error('Lỗi sao chép tự động:', err);
