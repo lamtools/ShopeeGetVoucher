@@ -270,12 +270,77 @@
         document.getElementById('rawLink').focus();
     }
 
-    function cleanLongUrl(longUrl) {
+    function extractProductUrl(cleanedUrl) {
+        // Xử lý nested URL encoding (decode nhiều lần)
+        let decodedUrl = cleanedUrl;
+        let previousUrl = '';
+        
+        // Giải mã cho đến khi không thể decode thêm nữa
+        while (decodedUrl !== previousUrl) {
+            try {
+                previousUrl = decodedUrl;
+                decodedUrl = decodeURIComponent(decodedUrl);
+            } catch (e) {
+                // Nếu decode lỗi, dừng lại
+                break;
+            }
+        }
+        
+        console.log(`[Extract] Raw: ${cleanedUrl}`);
+        console.log(`[Extract] Decoded: ${decodedUrl}`);
+        
         try {
-            const urlObj = new URL(longUrl);
-            return urlObj.origin + urlObj.pathname;
-        } catch (error) {
-            throw new Error("Định dạng URL không hợp lệ.");
+            // Trích xuất URL shopee từ các loại link wrapper (bitly, tinyurl, v.v)
+            let finalUrl = decodedUrl;
+            
+            // Nếu link chứa query param "url", lấy giá trị của nó
+            if (finalUrl.includes('?url=')) {
+                const urlParam = new URL(finalUrl).searchParams.get('url');
+                if (urlParam) {
+                    finalUrl = urlParam;
+                    console.log(`[Extract] Found url param: ${finalUrl}`);
+                }
+            }
+            
+            // Nếu link chứa origin_link, trích xuất nó
+            if (finalUrl.includes('origin_link=')) {
+                const match = finalUrl.match(/origin_link=([^&]+)/);
+                if (match) {
+                    let originLink = decodeURIComponent(match[1]);
+                    // Decode thêm lần nữa nếu cần
+                    try {
+                        const decodedAgain = decodeURIComponent(originLink);
+                        if (decodedAgain !== originLink) {
+                            originLink = decodedAgain;
+                        }
+                    } catch (e) {}
+                    finalUrl = originLink;
+                    console.log(`[Extract] Found origin_link: ${finalUrl}`);
+                }
+            }
+            
+            // Parse URL để lấy origin + pathname
+            const urlObj = new URL(finalUrl);
+            let pathname = urlObj.pathname;
+            const origin = urlObj.origin;
+            
+            // Loại bỏ /universal-link/ nếu có
+            pathname = pathname.replace(/\/universal-link\//g, '/');
+            
+            // Loại bỏ dấu / thừa
+            pathname = pathname.replace(/\/+/g, '/');
+            
+            // Xây dựng URL cuối cùng
+            const productUrl = origin + pathname;
+            console.log(`[Extract] Final: ${productUrl}`);
+            
+            return productUrl;
+        } catch (e) {
+            console.error(`[Extract] Error parsing URL: ${e.message}`);
+            // Nếu lỗi, trả về URL đã decode ít nhất
+            const urlObj = new URL(decodedUrl);
+            const pathname = urlObj.pathname.replace(/\/universal-link\//g, '/').replace(/\/+/g, '/');
+            return urlObj.origin + pathname;
         }
     }
 
@@ -290,18 +355,19 @@
         try {
             let finalCleanUrl = "";
 
-            if (shopeeUrl.includes('s.shopee.vn') || shopeeUrl.includes('shope.ee')) {
+            if (shopeeUrl.includes('s.shopee.vn') || shopeeUrl.includes('shope.ee') || shopeeUrl.includes('vn.shp.ee')) {
                 const response = await fetch(`${CONFIG.WORKER_API}?url=${encodeURIComponent(shopeeUrl)}`);
                 if (!response.ok) throw new Error(`API Lỗi HTTP ${response.status}`);
                 
                 const data = await response.json();
                 if (data && data.final_url) {
-                    finalCleanUrl = cleanLongUrl(data.final_url);
+                    // Sử dụng hàm extractProductUrl để xử lý URL tốt hơn
+                    finalCleanUrl = extractProductUrl(data.final_url);
                 } else {
                     throw new Error("Không lấy được link gốc từ API.");
                 }
             } else {
-                finalCleanUrl = cleanLongUrl(shopeeUrl);
+                finalCleanUrl = extractProductUrl(shopeeUrl);
             }
 
             const encodedOriginLink = encodeURIComponent(finalCleanUrl);
