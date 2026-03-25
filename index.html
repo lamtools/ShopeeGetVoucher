@@ -202,6 +202,94 @@
                 opacity: 0;
             }
         }
+
+        /* ===== INSTRUCTION SECTION STYLES ===== */
+        .instructions-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .instructions-section h3 {
+            color: var(--primary);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .tab-container {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--surface);
+        }
+
+        .tab-header {
+            display: flex;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background-color: transparent;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background-color: #f0f0f0;
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background-color: var(--surface);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 1.5rem;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content ol {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .tab-content li {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .tab-content li:last-child {
+            margin-bottom: 0;
+        }
+
+        .note {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: #fffbf0;
+            border-left: 3px solid var(--primary);
+            font-size: 0.9rem;
+            color: #d97706;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -250,6 +338,39 @@
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             2. Bình Luận Facebook
         </button>
+    </div>
+</div>
+
+<!-- INSTRUCTION SECTION -->
+<div class="container">
+    <div class="instructions-section">
+        <h3>📚 Hướng dẫn</h3>
+        
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="switchTab('facebook')">Mã Facebook</button>
+                <button class="tab-btn" onclick="switchTab('social')">Mã Social Media</button>
+            </div>
+            
+            <div id="facebook" class="tab-content active">
+                <ol>
+                    <li>Tạo Link</li>
+                    <li>Bấm nút "Copy Link"</li>
+                    <li>Bấm nút "Bình Luận Lên Facebook"</li>
+                    <li>Bình luận link vừa copy vào bài viết trên facebook sau đó tự bấm vào link đã bình luận để nhảy qua app Shopee là lấy được mã.</li>
+                </ol>
+            </div>
+            
+            <div id="social" class="tab-content">
+                <ol>
+                    <li>Tạo Link</li>
+                    <li>Bấm vào link vừa tạo để nhảy qua App Shopee luôn là có mã.</li>
+                </ol>
+                <div class="note">
+                    ⚠️ <strong>Chú ý:</strong> Mã Social Media thường chỉ dùng được ở một số ít sản phẩm, chủ yếu là sản phẩm thời trang.
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -536,6 +657,27 @@
             document.getElementById('rawLink').value = '';
             document.getElementById('resultBox').style.display = 'none';
         }, 500);
+    }
+
+    // ===== TAB SWITCHING FUNCTION =====
+    function switchTab(tabName) {
+        // Hide all tab contents
+        const contents = document.querySelectorAll('.tab-content');
+        contents.forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Remove active class from all tab buttons
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab content
+        document.getElementById(tabName).classList.add('active');
+
+        // Add active class to clicked button
+        event.target.classList.add('active');
     }
 </script>
 </body>
