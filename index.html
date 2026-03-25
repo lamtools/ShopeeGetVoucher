@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shopee Voucher Tool</title>
+    
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ee4d2d' width='192' height='192' rx='45'/><path fill='white' d='M60 70h72c6.63 0 12 5.37 12 12v48c0 6.63-5.37 12-12 12H60c-6.63 0-12-5.37-12-12V82c0-6.63 5.37-12 12-12z'/><circle cx='76' cy='96' r='6' fill='%23ee4d2d'/><circle cx='96' cy='96' r='6' fill='%23ee4d2d'/><circle cx='116' cy='96' r='6' fill='%23ee4d2d'/><path fill='%23ee4d2d' d='M70 115h52v3H70z'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23ee4d2d' width='180' height='180' rx='40'/><path fill='white' d='M50 60h80c6.63 0 12 5.37 12 12v50c0 6.63-5.37 12-12 12H50c-6.63 0-12-5.37-12-12V72c0-6.63 5.37-12 12-12z'/><circle cx='67' cy='85' r='6' fill='%23ee4d2d'/><circle cx='90' cy='85' r='6' fill='%23ee4d2d'/><circle cx='113' cy='85' r='6' fill='%23ee4d2d'/><path fill='%23ee4d2d' d='M60 105h60v3H60z'/></svg>">
+    
+    <!-- Web App Meta Tags -->
+    <meta name="theme-color" content="#ee4d2d">
+    <meta name="description" content="Công cụ tạo link Shopee với mã giảm giá. Lấy voucher 25% dễ dàng từ các sản phẩm Shopee.">
+    <meta name="application-name" content="GET VOUCHER">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GET VOUCHER">
+    
     <style>
         :root {
             --primary: #ee4d2d;
@@ -270,12 +283,77 @@
         document.getElementById('rawLink').focus();
     }
 
-    function cleanLongUrl(longUrl) {
+    function extractProductUrl(cleanedUrl) {
+        // Xử lý nested URL encoding (decode nhiều lần)
+        let decodedUrl = cleanedUrl;
+        let previousUrl = '';
+        
+        // Giải mã cho đến khi không thể decode thêm nữa
+        while (decodedUrl !== previousUrl) {
+            try {
+                previousUrl = decodedUrl;
+                decodedUrl = decodeURIComponent(decodedUrl);
+            } catch (e) {
+                // Nếu decode lỗi, dừng lại
+                break;
+            }
+        }
+        
+        console.log(`[Extract] Raw: ${cleanedUrl}`);
+        console.log(`[Extract] Decoded: ${decodedUrl}`);
+        
         try {
-            const urlObj = new URL(longUrl);
-            return urlObj.origin + urlObj.pathname;
-        } catch (error) {
-            throw new Error("Định dạng URL không hợp lệ.");
+            // Trích xuất URL shopee từ các loại link wrapper (bitly, tinyurl, v.v)
+            let finalUrl = decodedUrl;
+            
+            // Nếu link chứa query param "url", lấy giá trị của nó
+            if (finalUrl.includes('?url=')) {
+                const urlParam = new URL(finalUrl).searchParams.get('url');
+                if (urlParam) {
+                    finalUrl = urlParam;
+                    console.log(`[Extract] Found url param: ${finalUrl}`);
+                }
+            }
+            
+            // Nếu link chứa origin_link, trích xuất nó
+            if (finalUrl.includes('origin_link=')) {
+                const match = finalUrl.match(/origin_link=([^&]+)/);
+                if (match) {
+                    let originLink = decodeURIComponent(match[1]);
+                    // Decode thêm lần nữa nếu cần
+                    try {
+                        const decodedAgain = decodeURIComponent(originLink);
+                        if (decodedAgain !== originLink) {
+                            originLink = decodedAgain;
+                        }
+                    } catch (e) {}
+                    finalUrl = originLink;
+                    console.log(`[Extract] Found origin_link: ${finalUrl}`);
+                }
+            }
+            
+            // Parse URL để lấy origin + pathname
+            const urlObj = new URL(finalUrl);
+            let pathname = urlObj.pathname;
+            const origin = urlObj.origin;
+            
+            // Loại bỏ /universal-link/ nếu có
+            pathname = pathname.replace(/\/universal-link\//g, '/');
+            
+            // Loại bỏ dấu / thừa
+            pathname = pathname.replace(/\/+/g, '/');
+            
+            // Xây dựng URL cuối cùng
+            const productUrl = origin + pathname;
+            console.log(`[Extract] Final: ${productUrl}`);
+            
+            return productUrl;
+        } catch (e) {
+            console.error(`[Extract] Error parsing URL: ${e.message}`);
+            // Nếu lỗi, trả về URL đã decode ít nhất
+            const urlObj = new URL(decodedUrl);
+            const pathname = urlObj.pathname.replace(/\/universal-link\//g, '/').replace(/\/+/g, '/');
+            return urlObj.origin + pathname;
         }
     }
 
@@ -290,18 +368,19 @@
         try {
             let finalCleanUrl = "";
 
-            if (shopeeUrl.includes('s.shopee.vn') || shopeeUrl.includes('shope.ee')) {
+            if (shopeeUrl.includes('s.shopee.vn') || shopeeUrl.includes('shope.ee') || shopeeUrl.includes('vn.shp.ee')) {
                 const response = await fetch(`${CONFIG.WORKER_API}?url=${encodeURIComponent(shopeeUrl)}`);
                 if (!response.ok) throw new Error(`API Lỗi HTTP ${response.status}`);
                 
                 const data = await response.json();
                 if (data && data.final_url) {
-                    finalCleanUrl = cleanLongUrl(data.final_url);
+                    // Sử dụng hàm extractProductUrl để xử lý URL tốt hơn
+                    finalCleanUrl = extractProductUrl(data.final_url);
                 } else {
                     throw new Error("Không lấy được link gốc từ API.");
                 }
             } else {
-                finalCleanUrl = cleanLongUrl(shopeeUrl);
+                finalCleanUrl = extractProductUrl(shopeeUrl);
             }
 
             const encodedOriginLink = encodeURIComponent(finalCleanUrl);
@@ -385,14 +464,18 @@
                 resultText = resultText.replace(new RegExp(oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newUrl);
             });
 
-            // Render result với clickable links
+            // Tạo 2 text khác nhau: một cho hiển thị, một cho copy
+            const displayText = "Dán Link này vào Facebook để lấy Voucher 25%: " + resultText;
+            const copyText = "Bấm vào link này lấy Voucher 25%: " + resultText;
+
+            // Render result với clickable links (hiển thị displayText)
             const resultElement = document.getElementById('affiliateUrl');
-            resultElement.innerHTML = renderResultWithLinks(resultText);
-            resultElement.dataset.plainText = resultText; // Lưu text gốc để copy
+            resultElement.innerHTML = renderResultWithLinks(displayText);
+            resultElement.dataset.plainText = copyText; // Lưu copyText để copy
             resultBox.style.display = 'block';
             
-            // Tự động sao chép kết quả vào clipboard
-            navigator.clipboard.writeText(resultText).then(() => {
+            // Tự động sao chép kết quả vào clipboard (copy copyText)
+            navigator.clipboard.writeText(copyText).then(() => {
                 showToast('Đã sao chép kết quả!', 'success');
             }).catch(err => {
                 console.error('Lỗi sao chép tự động:', err);
