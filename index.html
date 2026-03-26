@@ -30,9 +30,9 @@
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; padding: 1rem; min-height: 100vh; }
-        .container { background-color: var(--surface); width: 100%; max-width: 500px; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-top: 2rem; height: fit-content; }
-        h2 { text-align: center; margin-bottom: 1.5rem; color: var(--primary); font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        body { background-color: var(--surface); color: var(--text-main); display: flex; justify-content: center; padding: 0; min-height: 100vh; }
+        .container { background-color: var(--surface); width: 100%; max-width: 100%; padding: 1.5rem; border-radius: 0; box-shadow: none; margin-top: 0; height: fit-content; }
+        h2 { text-align: left; margin-bottom: 1.5rem; color: var(--primary); font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
         
         .input-group { margin-bottom: 1rem; position: relative; }
         
@@ -215,7 +215,7 @@
             font-size: 1.2rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            text-align: center;
+            text-align: left;
         }
 
         .tab-container {
